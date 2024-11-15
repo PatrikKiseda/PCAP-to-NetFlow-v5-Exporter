@@ -1,4 +1,5 @@
 #include "packet_reader.h"
+#include "flow_manager.h"
 
 int main(int argc, char* argv[]) {
     std::string collector_host;
@@ -32,11 +33,11 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::cout << "Collector Host: " << collector_host << std::endl;
-    std::cout << "Collector Port: " << collector_port << std::endl;
-    std::cout << "PCAP File: " << pcap_file << std::endl;
-    std::cout << "Active Timeout: " << active_timeout << " seconds" << std::endl;
-    std::cout << "Inactive Timeout: " << inactive_timeout << " seconds" << std::endl;
+    std::cout << "Collector Host   : " << collector_host << std::endl;
+    std::cout << "Collector Port   : " << collector_port << std::endl;
+    std::cout << "PCAP File        : " << pcap_file << std::endl;
+    std::cout << "Active Timeout   : " << active_timeout << " seconds" << std::endl;
+    std::cout << "Inactive Timeout : " << inactive_timeout << " seconds" << std::endl;
 
 
     if (collector_host.empty() || pcap_file.empty()) {
@@ -45,7 +46,7 @@ int main(int argc, char* argv[]) {
     }
     
     PacketReader packetReader(pcap_file);
-    //FlowManager flowManager(active_timeout, inactive_timeout);
+    FlowManager flowManager(active_timeout, inactive_timeout);
     //NetFlowExporter netflowExporter(collector_host, collector_port);
 
     struct pcap_pkthdr* header;
@@ -59,10 +60,10 @@ int main(int argc, char* argv[]) {
             packet_count++;
  
             std::cout << "\n\n";
-            std::cout << "Packet #" << packet_count << std::endl;
-            std::cout << "Timestamp: " << header->ts.tv_sec << "." << header->ts.tv_usec << std::endl;
-            std::cout << "Captured Length: " << header->caplen << std::endl;
-            std::cout << "Original Length: " << header->len << std::endl;
+            std::cout << "Packet          #" << packet_count << std::endl;
+            std::cout << "Timestamp       : " << header->ts.tv_sec << "." << header->ts.tv_usec << std::endl;
+            std::cout << "Captured Length : " << header->caplen << std::endl;
+            std::cout << "Original Length : " << header->len << std::endl;
 
             if (header->caplen < sizeof(struct ether_header)) {
                 std::cerr << "Packet too short for Ethernet header." << std::endl;
@@ -107,16 +108,29 @@ int main(int argc, char* argv[]) {
             packet.timestamp = header->ts.tv_sec;
             packet.tcp_flags = tcp_header->th_flags;
 
-            std::cout << "Packet Details:" << std::endl;
-            std::cout << "Src IP: " << packet.src_ip << std::endl;
-            std::cout << "Dst IP: " << packet.dst_ip << std::endl;
-            std::cout << "Src Port: " << packet.src_port << std::endl;
-            std::cout << "Dst Port: " << packet.dst_port << std::endl;
-            std::cout << "Protocol: " << static_cast<int>(packet.protocol) << std::endl;
-            std::cout << "Length: " << packet.length << std::endl;
-            std::cout << "Timestamp: " << packet.timestamp << std::endl;
-            std::cout << "TCP Flags: " << static_cast<int>(packet.tcp_flags) << std::endl;
+            std::cout << "Packet Details :" << std::endl;
+            std::cout << "Src IP         : " << packet.src_ip << std::endl;
+            std::cout << "Dst IP         : " << packet.dst_ip << std::endl;
+            std::cout << "Src Port       : " << packet.src_port << std::endl;
+            std::cout << "Dst Port       : " << packet.dst_port << std::endl;
+            std::cout << "Protocol       : " << static_cast<int>(packet.protocol) << std::endl;
+            std::cout << "Length         : " << packet.length << std::endl;
+            std::cout << "Timestamp      : " << packet.timestamp << std::endl;
+            std::cout << "TCP Flags      : " << static_cast<int>(packet.tcp_flags) << std::endl;
 
+            // Add packet to FlowManager
+            flowManager.addPacket(packet);
+
+            // Check for flows to export
+            time_t current_time = packet.timestamp;
+            auto flows_to_export = flowManager.checkTimeouts(current_time);
+
+            // For now, just print out the flows ready to be exported
+            for (const auto& flow : flows_to_export) {
+                std::cout << "Flow ready to export:" << std::endl;
+                std::cout << "Src IP: " << flow.getSrcIP() << std::endl;
+                std::cout << "Dst IP: " << flow.getDstIP() << std::endl;
+            }
 
         } else if (res == 0) {
       
@@ -130,13 +144,17 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Total packets processed: " << packet_count << std::endl;
 
+    auto remaining_flows = flowManager.exportAllFlows();
+    for (const auto& flow : remaining_flows) {
+        std::cout << "Remaining flow to export:" << std::endl;
+        std::cout << "Src IP: " << flow.getSrcIP() << std::endl;
+        std::cout << "Dst IP: " << flow.getDstIP() << std::endl;
+        
+        
+    }
+
+    std::cout << "Total packets processed: " << packet_count << std::endl;
+
     return 0;
 
-    /*
-    
-    auto remaining_flows = flowManager.exportAllFlows();
-    for (auto& flow : remaining_flows) {
-        netflowExporter.exportFlow(flow);
-    }
-    */
 }

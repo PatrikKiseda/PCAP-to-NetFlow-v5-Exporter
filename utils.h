@@ -11,6 +11,8 @@
 #include <netinet/udp.h>
 #include <netinet/if_ether.h>
 #include <arpa/inet.h>   
+#include <unordered_map>
+#include <vector>
 
 struct Packet {
     std::string src_ip;
@@ -22,5 +24,6 @@ struct Packet {
     time_t timestamp;
     uint8_t tcp_flags;
 };
+
 
 #endif
