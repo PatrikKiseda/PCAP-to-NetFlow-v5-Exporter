@@ -7,8 +7,7 @@ class FlowRecord {
 public:
     FlowRecord(const Packet& packet);
     void update(const Packet& packet);
-    bool isActive(time_t current_time, int active_timeout, int inactive_timeout) const;
-
+    bool isActive(const struct timeval& current_time, int active_timeout, int inactive_timeout) const;
     const std::string& getSrcIP() const;
     const std::string& getDstIP() const;
     uint16_t getSrcPort() const;
@@ -16,8 +15,8 @@ public:
     uint8_t getProtocol() const;
     uint32_t getPacketCount() const;
     uint32_t getByteCount() const;
-    time_t getFirstSeen() const;
-    time_t getLastSeen() const;
+    const struct timeval& getFirstSeen() const;
+    const struct timeval& getLastSeen() const;
     uint8_t getTCPFlags() const;
 
 private:
@@ -28,8 +27,8 @@ private:
     uint8_t protocol;
     uint32_t packet_count;
     uint32_t byte_count;
-    time_t first_seen;
-    time_t last_seen;
+    struct timeval first_seen;
+    struct timeval last_seen;
     uint8_t tcp_flags;
 };
 

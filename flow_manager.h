@@ -8,7 +8,7 @@ class FlowManager {
 public:
     FlowManager(int active_timeout, int inactive_timeout);
     void addPacket(const Packet& packet);
-    std::vector<FlowRecord> checkTimeouts(time_t current_time);
+    std::vector<FlowRecord> checkTimeouts(const struct timeval& current_time);
     std::vector<FlowRecord> exportAllFlows();
 
 private:
